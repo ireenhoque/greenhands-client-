@@ -25,9 +25,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Navbar />
         <main>
           {children}
+          <Hero />
         </main>
-
-        <Hero />
 
         <Footer />
       </body>
