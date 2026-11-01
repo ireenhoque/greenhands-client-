@@ -11,12 +11,12 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
 import {
   EventsApiError,
   fetchEventById,
 } from "@/lib/api/events"
-import { cn } from "@/lib/utils"
+import { JoinEventPanel } from "@/components/events/join-event-panel"
+import { getSession } from "@/lib/session"
 
 type EventDetailsPageProps = {
   params: Promise<{ id: string }>
@@ -53,9 +53,15 @@ export default async function EventDetailsPage({
   const { id } = await params
 
   let event
+  let signedIn = false
 
   try {
-    event = await fetchEventById(id)
+    const [eventById, session] = await Promise.all([
+      fetchEventById(id),
+      getSession(),
+    ])
+    event = eventById
+    signedIn = Boolean(session)
   } catch (error) {
     if (
       error instanceof EventsApiError &&
@@ -237,19 +243,9 @@ export default async function EventDetailsPage({
                 a positive impact.
               </p>
 
-              <Link
-                href={`/login?returnUrl=${encodeURIComponent(`/events/${event._id}`)}`}
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "mt-5 w-full bg-brand-forest text-brand-ivory hover:bg-brand-forest/90"
-                )}
-              >
-                Join Event
-              </Link>
-
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                Sign in to participate in this event.
-              </p>
+              <div className="mt-5">
+                <JoinEventPanel eventId={event._id} signedIn={signedIn} />
+              </div>
             </div>
           </aside>
         </div>

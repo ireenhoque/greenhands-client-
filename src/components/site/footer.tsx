@@ -22,8 +22,8 @@ type SocialLink = {
 
 const exploreLinks: FooterLink[] = [
   { label: "Home", href: "/" },
-  { label: "Upcoming Events", href: null }, // pending route: "/events"
-  { label: "Create Event", href: null }, // pending route: "/create-event"
+  { label: "Upcoming Events", href: "/events" },
+  { label: "Create Event", href: "/dashboard/create-event" },
 ]
 
 const communityLinks: FooterLink[] = [

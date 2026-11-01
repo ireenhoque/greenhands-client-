@@ -40,14 +40,13 @@ export type AccountItem = {
 }
 
 /**
- * Account dropdown items. `href: null` means the route does not exist yet, so
- * the item is rendered as clearly-marked, non-clickable text — never a broken
- * link. Enable an item by filling in its route.
+ * Account dropdown items — every dashboard route now exists, so all items
+ * are live links under /dashboard/*.
  */
 export const ACCOUNT_ITEMS: AccountItem[] = [
-  { label: "Create Event", href: "/create-event", icon: PlusCircle },
-  { label: "Manage Events", href: null, icon: LayoutDashboard }, // pending: "/manage-events"
-  { label: "Joined Events", href: null, icon: ListChecks }, // pending: "/joined-events"
+  { label: "Create Event", href: "/dashboard/create-event", icon: PlusCircle },
+  { label: "Manage Events", href: "/dashboard/manage-events", icon: LayoutDashboard },
+  { label: "Joined Events", href: "/dashboard/joined-events", icon: ListChecks },
   // Add { label: "My Profile", href: "/profile", icon: UserCircle } once
   // src/app/profile/page.tsx exists (the profile item is conditional on it).
 ]

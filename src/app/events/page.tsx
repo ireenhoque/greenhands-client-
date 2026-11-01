@@ -1,16 +1,26 @@
 import { Suspense } from "react"
 import Link from "next/link"
-import { ArrowLeft, CalendarDays, Leaf } from "lucide-react"
+import { ArrowLeft, CalendarDays, CalendarPlus, Leaf } from "lucide-react"
 
 import { fetchUpcomingEvents, EventsApiError } from "@/lib/api/events"
 import { EventsFilter } from "@/components/events/events-filter"
+import { getSession } from "@/lib/session"
 
 async function EventsContent() {
   let events = null
   let errorMessage: string | null = null
 
+  // Request-time reads (events API + signed-in state) below — this block
+  // streams inside the page's <Suspense> boundary.
+  let signedIn = false
+
   try {
-    events = await fetchUpcomingEvents()
+    const [upcomingEvents, session] = await Promise.all([
+      fetchUpcomingEvents(),
+      getSession(),
+    ])
+    events = upcomingEvents
+    signedIn = Boolean(session)
   } catch (error) {
     errorMessage =
       error instanceof EventsApiError
@@ -46,9 +56,21 @@ async function EventsContent() {
               </p>
             </div>
 
-            <span className="rounded-full border border-brand-sage/30 bg-brand-soft-sage/40 px-3 py-1 text-sm font-medium text-brand-forest dark:bg-brand-sage/10 dark:text-brand-soft-sage">
-              {events.length} {events.length === 1 ? "event" : "events"}
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="rounded-full border border-brand-sage/30 bg-brand-soft-sage/40 px-3 py-1 text-sm font-medium text-brand-forest dark:bg-brand-sage/10 dark:text-brand-soft-sage">
+                {events.length} {events.length === 1 ? "event" : "events"}
+              </span>
+
+              {signedIn ? (
+                <Link
+                  href="/dashboard/create-event"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-forest px-4 py-2 text-sm font-medium text-brand-ivory transition-colors hover:bg-brand-forest/90"
+                >
+                  <CalendarPlus aria-hidden className="size-4" />
+                  Create Event
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           <EventsFilter events={events} />
