@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, Leaf } from "lucide-react"
 
 import { EventCard } from "@/components/events/event-card"
 import { fetchUpcomingEvents, EventsApiError } from "@/lib/api/events"
+import { EventsFilter } from "@/components/events/events-filter"
 
 async function EventsContent() {
   let events = null
@@ -51,15 +52,7 @@ async function EventsContent() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event, index) => (
-              <EventCard
-                key={event._id}
-                event={event}
-                priority={index === 0}
-              />
-            ))}
-          </div>
+          <EventsFilter events={events} />
         </>
       ) : (
         <div className="flex flex-col items-center rounded-3xl border border-dashed border-brand-sage/40 bg-brand-soft-sage/20 px-6 py-16 text-center dark:bg-brand-forest/10">
