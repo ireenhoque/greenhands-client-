@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/site/mobile-nav"
 import { NAV_LINKS } from "@/components/site/nav-links"
 import { ThemeToggle } from "@/components/site/theme-toggle"
 import { getSession } from "@/lib/session"
+import { Suspense } from "react"
 
 export function Navbar() {
   const session = getSession()
@@ -63,7 +64,13 @@ export function Navbar() {
         {/* Right section: theme toggle + auth + mobile menu */}
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
-          <AuthControls user={user} />
+          <Suspense
+            fallback={
+              <div className="h-9 w-20 animate-pulse rounded-md bg-muted" />
+            }
+          >
+            <AuthControls user={user} />
+          </Suspense>
           <MobileNav user={user} />
         </div>
       </nav>

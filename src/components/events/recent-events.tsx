@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link"
@@ -32,9 +33,9 @@ function EventGrid({ children }: { children: React.ReactNode }) {
 /**
  * "Upcoming Opportunities to Make a Difference" section.
  *
- * Fetches GET /events/recent once through the shared API utility and renders
- * skeletons while loading, a meaningful error panel (with retry) on failure,
- * the empty-state message when the API returns no events, or up to 6 cards.
+ * Fetches GET /events/recent through the shared API utility and renders
+ * skeletons while loading, an error panel with retry on failure, an
+ * empty-state message when no events are returned, or up to 6 cards.
  */
 export function RecentEvents() {
   const [requestKey, setRequestKey] = useState(0)
@@ -50,8 +51,9 @@ export function RecentEvents() {
         }
       })
       .catch((error: unknown) => {
-        // Ignore cancellations caused by unmount/retry — not real failures.
+        // Ignore cancellations caused by unmount/retry.
         if (controller.signal.aborted) return
+
         setState({
           status: "error",
           message:
@@ -82,6 +84,7 @@ export function RecentEvents() {
           >
             Upcoming Opportunities to Make a Difference
           </h2>
+
           <p className="mt-3 text-pretty text-muted-foreground md:text-lg">
             Discover meaningful community-service initiatives and find your next
             opportunity to help.
@@ -100,11 +103,12 @@ export function RecentEvents() {
         </Link>
       </div>
 
-      {/* aria-live announces state changes (loaded / failed) to assistive tech */}
+      {/* Announces loading, success, and error states to assistive technology */}
       <div aria-live="polite" className="mt-10">
         {state.status === "loading" && (
           <div role="status">
             <span className="sr-only">Loading upcoming events…</span>
+
             <EventGrid>
               {Array.from({ length: SKELETON_COUNT }, (_, index) => (
                 <li key={index}>
@@ -126,12 +130,17 @@ export function RecentEvents() {
             >
               <AlertCircle className="size-5" />
             </span>
+
             <div>
-              <p className="font-semibold">We couldn’t load upcoming events</p>
+              <p className="font-semibold">
+                We couldn’t load upcoming events
+              </p>
+
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
                 {state.message}
               </p>
             </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -152,6 +161,7 @@ export function RecentEvents() {
             >
               <CalendarX2 className="size-5" />
             </span>
+
             <p className="max-w-md text-muted-foreground">
               No upcoming events right now. Check back soon to discover new
               community initiatives.
@@ -161,9 +171,12 @@ export function RecentEvents() {
 
         {state.status === "success" && state.events.length > 0 && (
           <EventGrid>
-            {state.events.map((event) => (
+            {state.events.map((event, index) => (
               <li key={event._id}>
-                <EventCard event={event} />
+                <EventCard
+                  event={event}
+                  priority={index === 0}
+                />
               </li>
             ))}
           </EventGrid>
@@ -172,3 +185,4 @@ export function RecentEvents() {
     </section>
   )
 }
+
