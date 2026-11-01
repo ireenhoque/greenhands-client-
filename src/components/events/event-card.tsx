@@ -5,7 +5,7 @@ import { ArrowRight, CalendarDays, Leaf, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import type { RecentEvent } from "@/lib/api/events"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 function formatDate(isoDate: string): string | null {
   const date = new Date(isoDate)
