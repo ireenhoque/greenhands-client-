@@ -5,13 +5,10 @@ import { AuthControls } from "@/components/site/auth-controls"
 import { MobileNav } from "@/components/site/mobile-nav"
 import { NAV_LINKS } from "@/components/site/nav-links"
 import { ThemeToggle } from "@/components/site/theme-toggle"
-import { getSession } from "@/lib/session"
 import { Suspense } from "react"
+import { getSession } from "@/lib/session"
 
 export function Navbar() {
-  const session = getSession()
-  const user = session?.user ?? null
-
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
       <nav
@@ -64,16 +61,36 @@ export function Navbar() {
         {/* Right section: theme toggle + auth + mobile menu */}
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
-          <Suspense
-            fallback={
-              <div className="h-9 w-20 animate-pulse rounded-md bg-muted" />
-            }
-          >
-            <AuthControls user={user} />
+          {/* The session is a request-time read (cacheComponents), so the
+              auth-aware controls stream in behind this boundary while the
+              rest of the navbar prerenders into the static shell. */}
+          <Suspense fallback={<UserNavFallback />}>
+            <UserNav />
           </Suspense>
-          <MobileNav user={user} />
         </div>
       </nav>
     </header>
+  )
+}
+
+/** Matches the streamed controls' footprint so the navbar doesn't shift. */
+function UserNavFallback() {
+  return (
+    <div aria-hidden className="flex items-center gap-1.5">
+      <div className="h-9 w-20 animate-pulse rounded-md bg-muted" />
+      <div className="h-9 w-9 animate-pulse rounded-md bg-muted md:hidden" />
+    </div>
+  )
+}
+
+async function UserNav() {
+  const session = await getSession()
+  const user = session?.user ?? null
+
+  return (
+    <>
+      <AuthControls user={user} />
+      <MobileNav user={user} />
+    </>
   )
 }

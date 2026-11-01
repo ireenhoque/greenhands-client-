@@ -17,6 +17,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -28,7 +29,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "cn"
-import { signOut, type SessionUser } from "@/lib/session"
+import { authClient } from "@/lib/auth-client"
+import type { SessionUser } from "@/lib/session"
 
 export type AccountItem = {
   label: string
@@ -70,7 +72,7 @@ function getInitials(name: string) {
 function useSignOut() {
   const router = useRouter()
   return async () => {
-    await signOut() // seam — swap for authClient.signOut() when Better Auth lands
+    await authClient.signOut()
     router.push("/")
     router.refresh()
   }
@@ -136,41 +138,46 @@ function AccountDropdown({ user }: { user: SessionUser }) {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" sideOffset={8} className="w-60">
-              <DropdownMenuLabel className="px-2 py-1.5">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  {user.name}
-                </p>
-                {user.email ? (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {user.email}
+              {/* The label renders Menu.GroupLabel, which requires the
+                  MenuGroup context — it must sit inside a DropdownMenuGroup,
+                  so it is grouped with the account items here (Base UI). */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="px-2 py-1.5">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {user.name}
                   </p>
-                ) : null}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
+                  {user.email ? (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {user.email}
+                    </p>
+                  ) : null}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
 
-              {ACCOUNT_ITEMS.map((item) =>
-                item.href ? (
-                  <DropdownMenuItem
-                    key={item.label}
-                    render={<Link href={item.href} />}
-                    className="gap-2.5"
-                  >
-                    <item.icon className="text-brand-sage" />
-                    {item.label}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    key={item.label}
-                    disabled
-                    title={`${item.label} — page coming soon`}
-                    className="gap-2.5"
-                  >
-                    <item.icon />
-                    {item.label}
-                    <SoonTag />
-                  </DropdownMenuItem>
-                )
-              )}
+                {ACCOUNT_ITEMS.map((item) =>
+                  item.href ? (
+                    <DropdownMenuItem
+                      key={item.label}
+                      render={<Link href={item.href} />}
+                      className="gap-2.5"
+                    >
+                      <item.icon className="text-brand-sage" />
+                      {item.label}
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      key={item.label}
+                      disabled
+                      title={`${item.label} — page coming soon`}
+                      className="gap-2.5"
+                    >
+                      <item.icon />
+                      {item.label}
+                      <SoonTag />
+                    </DropdownMenuItem>
+                  )
+                )}
+              </DropdownMenuGroup>
 
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="gap-2.5">
