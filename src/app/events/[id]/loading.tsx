@@ -1,5 +1,3 @@
-import { ArrowLeft } from "lucide-react"
-
 export default function EventDetailsLoading() {
   return (
     <main className="min-h-screen bg-background">

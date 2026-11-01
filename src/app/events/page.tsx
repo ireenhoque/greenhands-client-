@@ -2,7 +2,6 @@ import { Suspense } from "react"
 import Link from "next/link"
 import { ArrowLeft, CalendarDays, Leaf } from "lucide-react"
 
-import { EventCard } from "@/components/events/event-card"
 import { fetchUpcomingEvents, EventsApiError } from "@/lib/api/events"
 import { EventsFilter } from "@/components/events/events-filter"
 

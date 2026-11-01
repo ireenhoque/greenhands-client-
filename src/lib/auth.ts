@@ -57,6 +57,18 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       trustedProviders: ["google"],
+      // In this version, implicit linking also requires the EXISTING local
+      // user row to have `emailVerified: true` (`requireLocalEmailVerified`
+      // defaults to true). Users whose row was created by email/password
+      // signup are `emailVerified: false` until verified, so their first
+      // Google sign-in failed with `account_not_linked` even though Google
+      // is trusted and always returns a verified email. Setting false
+      // restores the intended trusted-provider link; Better Auth itself
+      // then flips `emailVerified` to true on the matching Google sign-in —
+      // no manual DB edit needed.
+      // Note: marked deprecated upstream and scheduled for removal on the
+      // next minor — revisit if better-auth is ever upgraded past 1.7.x.
+      requireLocalEmailVerified: false,
     }
   },
 
