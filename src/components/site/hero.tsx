@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { ArrowRight, HeartHandshake, Sprout } from "lucide-react"
 
 import { ImpactStats } from "@/components/site/impact-stats"
@@ -12,14 +13,6 @@ const primaryActionClass = cn(
 )
 
 export function Hero() {
-  const session = getSession()
-
-  // Respects auth: logged-in users go straight to the form; logged-out users
-  // are sent to Login with a return URL so they come back afterwards.
-  const createEventHref = session?.user
-    ? "/create-event"
-    : `/login?returnUrl=${encodeURIComponent("/create-event")}`
-
   return (
     <section className="relative isolate overflow-hidden">
       {/* Subtle decorative background: soft brand washes + a faint dot grid */}
@@ -60,18 +53,49 @@ export function Hero() {
             Explore Upcoming Events
             <ArrowRight data-icon="inline-end" />
           </Link>
-          <Link
-            href={createEventHref}
-            className={buttonVariants({ variant: "outline", size: "lg" })}
-          >
-            <HeartHandshake data-icon="inline-start" />
-            Create an Event
-          </Link>
+          <Suspense fallback={<CreateEventCtaFallback />}>
+            <CreateEventCta />
+          </Suspense>
         </div>
 
         {/* Impact statistics (placeholder values — see impact-stats.tsx) */}
         <ImpactStats className="mt-14 md:mt-16" />
       </div>
     </section>
+  )
+}
+
+/**
+ * Respects auth: logged-in users go straight to the form; logged-out users
+ * are sent to Login with a return URL so they come back afterwards.
+ *
+ * Reads the session at request time, so it lives behind its own Suspense
+ * boundary (cacheComponents) while the rest of the hero stays in the static
+ * shell.
+ */
+async function CreateEventCta() {
+  const session = await getSession()
+  const href = session?.user
+    ? "/create-event"
+    : `/login?returnUrl=${encodeURIComponent("/create-event")}`
+
+  return (
+    <Link
+      href={href}
+      className={buttonVariants({ variant: "outline", size: "lg" })}
+    >
+      <HeartHandshake data-icon="inline-start" />
+      Create an Event
+    </Link>
+  )
+}
+
+/** Outline-button-shaped placeholder that reserves the CTA's space while it streams. */
+function CreateEventCtaFallback() {
+  return (
+    <div
+      aria-hidden
+      className="h-9 w-44 animate-pulse rounded-lg border border-border bg-muted dark:border-input dark:bg-input/30"
+    />
   )
 }

@@ -1,21 +1,22 @@
 /**
- * Auth session seam for the navbar and hero.
+ * Server-side session access, backed by Better Auth.
  *
- * This project does not have an auth provider wired up yet — there is no
- * Better Auth (or any auth) package installed, no auth client, and no session
- * utilities anywhere in the codebase. Rather than inventing a mock
- * authentication system, the auth-aware UI reads the current user through this
- * single module so exactly ONE place changes when real auth lands.
+ * This is the ONE module that touches the auth session on the server; the
+ * navbar and hero read it so exactly one place changes if the auth stack
+ * ever does.
  *
- * To integrate Better Auth later:
- *   1. Replace `getSession()` with the server-side session lookup, e.g.
- *        const session = await auth.api.getSession({ headers: await headers() })
- *      and make its callers await it (or read the session once in the root
- *      layout and pass it down).
- *   2. Replace `signOut()` with `authClient.signOut({ ... })`.
- *   3. Login links already point at /login?returnUrl=<current path> — keep or
- *      rename the query param to match your login page.
+ * Callers MUST await this inside a <Suspense> boundary: with `cacheComponents`
+ * enabled, reading the session cookie is a request-time read and cannot be
+ * prerendered into the static shell (reading cookies outside a boundary is a
+ * build error).
+ *
+ * Sign-out lives in the client (src/lib/auth-client.ts → authClient.signOut()).
  */
+import "server-only"
+import { headers } from "next/headers"
+
+import { auth } from "@/lib/auth"
+
 export type SessionUser = {
   id: string
   name: string
@@ -27,17 +28,24 @@ export type SessionUser = {
 export type Session = { user: SessionUser } | null
 
 /**
- * Returns the active session, or null when logged out.
- *
- * Always null until an auth provider is installed — this is NOT mock data;
- * it is the honest "no authenticated user" state.
+ * Reads the authentic Better Auth session for the current request — null
+ * when logged out. Projects the narrow SessionUser shape (> just the fields
+ * the UI needs) so no auth internals leak into components.
  */
-export function getSession(): Session {
-  // TODO(auth): return the real Better Auth session here.
-  return null
-}
+export async function getSession(): Promise<Session> {
+  const serverSession = await auth.api.getSession({ headers: await headers() })
 
-/** Ends the current session. No-op until an auth provider is installed. */
-export async function signOut(): Promise<void> {
-  // TODO(auth): call authClient.signOut() here, then refresh the router.
+  if (!serverSession) {
+    return null
+  }
+
+  const { user } = serverSession
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image ?? null,
+    },
+  }
 }
