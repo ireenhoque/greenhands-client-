@@ -49,6 +49,10 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    // The register form enforces the assignment policy (min 6 chars with
+    // upper + lowercase); lower the server default of 8 so compliant
+    // 6–7 character passwords are not rejected here.
+    minPasswordLength: 6,
   },
 
   socialProviders,
