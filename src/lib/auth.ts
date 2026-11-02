@@ -22,11 +22,18 @@
 import "server-only"
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
+import { jwt } from "better-auth/plugins/jwt"
 import { mongodbAdapter } from "@better-auth/mongo-adapter"
 import { mongoClient, mongoDb } from "./mongo"
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim()
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET?.trim()
+
+// Canonical auth origin. Used as the JWT issuer/audience and for the Google
+// OAuth callback base. Trailing slashes are stripped the same way Better
+// Auth normalizes baseURL, so the issuer always matches what the Express
+// server derives from its own env config when verifying tokens.
+const AUTH_URL = process.env.BETTER_AUTH_URL?.trim().replace(/\/+$/, "") || undefined
 
 // Google sign-in is only registered when BOTH credentials exist, so a dev
 // machine (or preview build) without OAuth creds keeps email/password working.
@@ -45,7 +52,7 @@ export const auth = betterAuth({
 
   // Configured origin wins; Better Auth falls back to the incoming request
   // host when this env var is not set. Set it explicitly in production.
-  baseURL: process.env.BETTER_AUTH_URL?.trim() || undefined,
+  baseURL: AUTH_URL,
 
   emailAndPassword: {
     enabled: true,
@@ -84,6 +91,27 @@ export const auth = betterAuth({
     },
   },
 
-  // Must stay last — it forwards auth Set-Cookie headers in Server Actions.
-  plugins: [nextCookies()],
+  plugins: [
+    // Official Better Auth JWT plugin (better-auth@1.7.14):
+    // - GET /api/auth/token → mints a short-lived (15 min) JWT for the
+    //   current session (data conveyed by the session cookie). The frontend
+    //   caches it in-memory and sends it to protected Express endpoints as
+    //   `Authorization: Bearer <jwt>` — see src/lib/api/auth-bearer.ts.
+    // - GET /api/auth/jwks → publishes the public verifying keys, which the
+    //   Express API fetches for verification (greenhands-server/db/jwt.js).
+    // Signing keys (an Ed25519 key pair) live in Better Auth's own `jwks`
+    // collection in the shared MongoDB cluster, encrypted with
+    // BETTER_AUTH_SECRET — no additional secrets are introduced.
+    //
+    // iss/aud are pinned to the configured origin so the Express server can
+    // check them against its own BETTER_AUTH_URL-derived expectations.
+    jwt({
+      jwt: {
+        issuer: AUTH_URL,
+        audience: AUTH_URL,
+      },
+    }),
+    // Must stay LAST — it forwards auth Set-Cookie headers in Server Actions.
+    nextCookies(),
+  ],
 })

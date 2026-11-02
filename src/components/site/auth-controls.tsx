@@ -9,6 +9,7 @@ import {
   LogIn,
   LogOut,
   PlusCircle,
+  UserRound,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -47,8 +48,7 @@ export const ACCOUNT_ITEMS: AccountItem[] = [
   { label: "Create Event", href: "/dashboard/create-event", icon: PlusCircle },
   { label: "Manage Events", href: "/dashboard/manage-events", icon: LayoutDashboard },
   { label: "Joined Events", href: "/dashboard/joined-events", icon: ListChecks },
-  // Add { label: "My Profile", href: "/profile", icon: UserCircle } once
-  // src/app/profile/page.tsx exists (the profile item is conditional on it).
+  { label: "My Profile", href: "/dashboard/profile", icon: UserRound },
 ]
 
 /** Login URL that returns the user to the page they came from. */

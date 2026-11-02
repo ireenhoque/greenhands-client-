@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
-import { CalendarPlus, LayoutDashboard, ListChecks } from "lucide-react"
+import { CalendarPlus, LayoutDashboard, ListChecks, UserRound } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -37,6 +37,11 @@ const DASHBOARD_LINKS: DashboardLink[] = [
     label: "Joined Events",
     href: "/dashboard/joined-events",
     icon: ListChecks,
+  },
+  {
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: UserRound,
   },
 ]
 
