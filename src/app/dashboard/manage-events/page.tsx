@@ -2,7 +2,9 @@ import Link from "next/link"
 import { CalendarPlus, Settings2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { ManageEventsList } from "@/components/events/manage-events-list"
+import { cn } from "cn"
 
 /**
  * Manage Events — dashboard route /dashboard/manage-events.
@@ -14,7 +16,7 @@ import { ManageEventsList } from "@/components/events/manage-events-list"
 export default function ManageEventsPage() {
   return (
     <div>
-      {/* Header (reference layout) */}
+      {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-brand-sage">
@@ -32,16 +34,16 @@ export default function ManageEventsPage() {
           </p>
         </div>
 
-        <Button
-          render={
-            <Link href="/dashboard/create-event" />
-          }
-          size="lg"
-          className="bg-brand-forest text-brand-ivory hover:bg-brand-forest/90"
+        <Link
+          href="/dashboard/create-event"
+          className={cn(
+            buttonVariants({ size: "lg" }),
+            "bg-brand-forest text-brand-ivory hover:bg-brand-forest/90"
+          )}
         >
           <CalendarPlus data-icon="inline-start" />
           Create New Event
-        </Button>
+        </Link>
       </div>
 
       {/* Own events */}
