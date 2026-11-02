@@ -105,9 +105,9 @@ export function LoginForm() {
           Enter your email below to login to your account
         </CardDescription>
         <CardAction>
-          <Link href={`/signup?returnUrl=${encodeURIComponent(returnUrl)}`}>
+          <Link href={`/register?returnUrl=${encodeURIComponent(returnUrl)}`}>
             <Button variant="link" type="button">
-              Sign Up
+              Register
             </Button>
           </Link>
         </CardAction>
