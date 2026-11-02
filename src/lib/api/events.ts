@@ -11,12 +11,16 @@
  *   organizerName, organizerEmail, createdAt, updatedAt
  *   (+ joinerCount on single-event reads — additive, from the join system)
  *
- * Auth: write/owner endpoints (create, edit, delete, mine, joined, join)
- * require the Better Auth session cookie. Fetches use `credentials:
- * "include"` so the cookie flows from the app origin to the API origin
- * (cross-port in dev — localhost:3000 → localhost:5000); the server's CORS
- * config already allows this, and the exchange never sees the cookie value.
+ * Auth: write/owner endpoints (create, edit, delete, mine, joined, join,
+ * join-state) send the Better Auth JWT plugin token (`Authorization: Bearer`,
+ * see src/lib/api/auth-bearer.ts) and keep `credentials: "include"` so the
+ * session cookie still flows from the app origin to the API origin — the
+ * cookie is a redundancy for legacy requests; the server accepts either.
+ * Cross-port (dev localhost:3000 → localhost:5000) and cross-domain
+ * (production) requests are covered by the JWT header.
  */
+import { clearJwtToken, getJwtToken } from "@/lib/api/auth-bearer"
+
 export type RecentEvent = {
   _id: string
   title: string
@@ -275,10 +279,16 @@ type AuthedRequestInit = {
 }
 
 /**
- * Internal helper for session-scoped API calls. Sends the auth cookie and
- * the standard JSON headers, applies `cache: "no-store"` so edited lists
- * never show a cached copy, and normalizes errors to EventsApiError with the
+ * Internal helper for session-scoped API calls. Sends the Better Auth JWT
+ * (Authorization: Bearer, resolved by src/lib/api/auth-bearer.ts) plus the
+ * standard JSON headers, applies `cache: "no-store"` so edited lists never
+ * show a cached copy, and normalizes errors to EventsApiError with the
  * server's message (including 401/403 responses from the auth middleware).
+ *
+ * A 401 while carrying a token triggers exactly one retry with a freshly
+ * fetched token — this transparently covers tokens that expired between
+ * request rounds; a signed-out session (no token) fails immediately with
+ * the server's 401 message, as before.
  */
 async function authedRequest(
   path: string,
@@ -290,24 +300,39 @@ async function authedRequest(
     )
   }
 
-  let response: Response
-  try {
-    response = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers: {
-        accept: "application/json",
-        ...(body !== undefined ? { "content-type": "application/json" } : {}),
-      },
-      credentials: "include",
-      cache: "no-store",
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      signal,
-    })
-  } catch (error) {
-    if (signal?.aborted) throw error
-    throw new EventsApiError(
-      `Could not reach the events API at ${BASE_URL}. Make sure the GreenHands server is running.`
-    )
+  const send = async (token: string | null): Promise<Response> => {
+    try {
+      return await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers: {
+          accept: "application/json",
+          ...(body !== undefined ? { "content-type": "application/json" } : {}),
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        cache: "no-store",
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        signal,
+      })
+    } catch (error) {
+      if (signal?.aborted) throw error
+      throw new EventsApiError(
+        `Could not reach the events API at ${BASE_URL}. Make sure the GreenHands server is running.`
+      )
+    }
+  }
+
+  let token = await getJwtToken()
+  let response = await send(token)
+
+  // The token may have expired since it was cached (server rejects with
+  // 401). Refresh once and retry; give up after that to avoid loops.
+  if (response.status === 401 && token) {
+    clearJwtToken()
+    token = await getJwtToken(true)
+    if (token) {
+      response = await send(token)
+    }
   }
 
   let payload: { success: boolean; message: string; data?: unknown }
