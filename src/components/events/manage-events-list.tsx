@@ -28,7 +28,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "cn"
 import {
   deleteEvent,
   EventsApiError,
@@ -47,7 +48,11 @@ const SKELETON_COUNT = 3
 
 function formatDate(isoDate: string): string | null {
   const date = new Date(isoDate)
-  if (Number.isNaN(date.getTime())) return null
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",
@@ -57,9 +62,10 @@ function formatDate(isoDate: string): string | null {
 }
 
 /**
- * One organizer card per the reference: image with category badge and a date
- * chip overlaid, title, location, description snippet, organizer row, and a
- * View / Edit / Delete action row.
+ * One organizer card per event.
+ *
+ * Navigation uses styled Link elements instead of Base UI Button with
+ * render={<Link />}. Action buttons remain native buttons.
  */
 function ManageEventCard({
   event,
@@ -77,8 +83,6 @@ function ManageEventCard({
       {/* Thumbnail with overlaid date chip */}
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-brand-forest/10">
         {event.imageUrl ? (
-          // Real organizer photos live on images.unsplash.com (whitelisted
-          // for next/image); the plain <img> keeps other hosts working too.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.imageUrl}
@@ -132,34 +136,33 @@ function ManageEventCard({
           </p>
         ) : null}
 
-        {/* Actions pinned to the bottom so rows align in the grid */}
+        {/* Actions pinned to the bottom */}
         <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border/70 pt-4">
-          <Button
-            render={
-              <Link href={`/events/${event._id}`} />
-            }
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
+          {/* View: navigation link */}
+          <Link
+            href={`/events/${event._id}`}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "text-muted-foreground hover:text-foreground"
+            )}
           >
             <SquareArrowOutUpRight data-icon="inline-start" />
             View
-          </Button>
+          </Link>
 
-          <Button
-            render={
-              <Link href={`/dashboard/edit-event/${event._id}`} />
-            }
-            variant="outline"
-            size="sm"
-            className="border-brand-sage/60 text-brand-forest hover:bg-brand-forest hover:text-brand-ivory dark:text-brand-soft-sage dark:hover:bg-brand-sage/20"
+          {/* Edit: navigation link */}
+          <Link
+            href={`/dashboard/edit-event/${event._id}`}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "border-brand-sage/60 text-brand-forest hover:bg-brand-forest hover:text-brand-ivory dark:text-brand-soft-sage dark:hover:bg-brand-sage/20"
+            )}
           >
             <Pencil data-icon="inline-start" />
             Edit
-          </Button>
+          </Link>
 
-          {/* Confirmation before deleting (AlertDialog <Trigger> wraps the
-              Delete button so Enter/Space confirm flows stay accessible). */}
+          {/* Delete: action button inside AlertDialog */}
           <AlertDialog>
             <AlertDialogTrigger
               render={
@@ -168,27 +171,32 @@ function ManageEventCard({
                   size="sm"
                   disabled={deleting}
                   className="border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive hover:text-white"
-                />
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2
+                        data-icon="inline-start"
+                        aria-hidden
+                        className="animate-spin"
+                      />
+                      Deleting…
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 data-icon="inline-start" />
+                      Delete
+                    </>
+                  )}
+                </Button>
               }
-            >
-              {deleting ? (
-                <>
-                  <Loader2 data-icon="inline-start" aria-hidden className="animate-spin" />
-                  Deleting…
-                </>
-              ) : (
-                <>
-                  <Trash2 data-icon="inline-start" />
-                  Delete
-                </>
-              )}
-            </AlertDialogTrigger>
+            />
 
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
                   Delete “{event.title}”?
                 </AlertDialogTitle>
+
                 <AlertDialogDescription>
                   This permanently removes the event for everyone, including{" "}
                   {typeof event.joinerCount === "number" &&
@@ -198,8 +206,10 @@ function ManageEventCard({
                   . This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
+
                 <AlertDialogAction onClick={onDelete}>
                   <Trash2 data-icon="inline-start" />
                   Delete event
@@ -214,14 +224,18 @@ function ManageEventCard({
 }
 
 /**
- * Manage Events — the organizer's own list only (GET /events/mine, enforced
- * server-side by the verified session). Deletion asks for confirmation, and
- * the backend rejects deleting another organizer's event with 403.
+ * Manage Events — the organizer's own list only.
+ *
+ * GET /events/mine is enforced server-side by the verified session.
+ * Deletion asks for confirmation, and the backend rejects deleting
+ * another organizer's event with 403.
  */
 export function ManageEventsList() {
   const router = useRouter()
 
-  const [state, setState] = useState<ManageState>({ status: "loading" })
+  const [state, setState] = useState<ManageState>({
+    status: "loading",
+  })
   const [requestKey, setRequestKey] = useState(0)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -232,11 +246,17 @@ export function ManageEventsList() {
     fetchMyEvents(controller.signal)
       .then((events) => {
         if (!controller.signal.aborted) {
-          setState({ status: "success", events })
+          setState({
+            status: "success",
+            events,
+          })
         }
       })
       .catch((listError: unknown) => {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) {
+          return
+        }
+
         setState({
           status: "error",
           message:
@@ -255,15 +275,21 @@ export function ManageEventsList() {
 
     try {
       await deleteEvent(id)
-      // Update the list without a refetch, then refresh server components.
-      if (state.status === "success") {
-        setState({
+
+      // Remove the deleted event from the local list.
+      setState((currentState) => {
+        if (currentState.status !== "success") {
+          return currentState
+        }
+
+        return {
           status: "success",
-          events: state.events.filter((event) => event._id !== id),
-        })
-      }
+          events: currentState.events.filter((event) => event._id !== id),
+        }
+      })
+
       router.refresh()
-    } catch (deleteFailure) {
+    } catch (deleteFailure: unknown) {
       setDeleteError(
         deleteFailure instanceof EventsApiError
           ? deleteFailure.message
@@ -287,9 +313,11 @@ export function ManageEventsList() {
         </p>
       ) : null}
 
+      {/* Loading */}
       {state.status === "loading" ? (
         <div role="status">
           <span className="sr-only">Loading your events…</span>
+
           <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: SKELETON_COUNT }, (_, index) => (
               <li key={index}>
@@ -300,15 +328,18 @@ export function ManageEventsList() {
         </div>
       ) : null}
 
+      {/* Error */}
       {state.status === "error" ? (
         <div
           role="alert"
           className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center"
         >
           <p className="font-semibold">We couldn’t load your events</p>
+
           <p className="max-w-md text-sm text-muted-foreground">
             {state.message}
           </p>
+
           <Button
             variant="outline"
             size="sm"
@@ -324,6 +355,7 @@ export function ManageEventsList() {
         </div>
       ) : null}
 
+      {/* Empty state */}
       {state.status === "success" && events.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-brand-sage/50 bg-brand-forest/5 px-6 py-14 text-center dark:bg-brand-sage/10">
           <p className="max-w-md text-muted-foreground">
@@ -343,6 +375,7 @@ export function ManageEventsList() {
         </div>
       ) : null}
 
+      {/* Events */}
       {state.status === "success" && events.length > 0 ? (
         <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (

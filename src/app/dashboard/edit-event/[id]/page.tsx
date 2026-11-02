@@ -23,15 +23,15 @@ function EditEventFallback() {
       <div className="mt-6 rounded-3xl border border-border/70 bg-card p-6 shadow-sm sm:p-10">
         <div className="max-w-2xl space-y-3">
           <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-          <div className="h-9 w-72 max-w-full animate-pulse rounded bg-muted" />
-          <div className="h-4 w-96 max-w-full animate-pulse rounded bg-muted" />
+          <div className="h-9 w-72 max-w-full rounded bg-muted" />
+          <div className="h-4 w-96 max-w-full rounded bg-muted" />
         </div>
 
         <div className="mt-10 space-y-6">
           {Array.from({ length: 5 }, (_, index) => (
             <div key={index} className="space-y-2">
               <div className="h-4 w-28 animate-pulse rounded bg-muted" />
-              <div className="h-10 w-full animate-pulse rounded-lg bg-muted" />
+              <div className="h-10 w-full rounded-lg bg-muted" />
             </div>
           ))}
         </div>
@@ -40,10 +40,21 @@ function EditEventFallback() {
   )
 }
 
-async function EditEventContent({ id }: { id: string }) {
+/**
+ * Reads the dynamic route parameter inside the Suspense boundary.
+ * Session and event data are request-time operations.
+ */
+async function EditEventContent({ params }: EditEventPageProps) {
+  const { id } = await params
+
   const session = await getSession()
+
   if (!session) {
-    redirect(`/login?returnUrl=${encodeURIComponent(`/dashboard/edit-event/${id}`)}`)
+    redirect(
+      `/login?returnUrl=${encodeURIComponent(
+        `/dashboard/edit-event/${id}`
+      )}`
+    )
   }
 
   let event
@@ -64,8 +75,8 @@ async function EditEventContent({ id }: { id: string }) {
 
   const ownedByViewer = Boolean(
     event.organizerEmail &&
-      session &&
-      event.organizerEmail.toLowerCase() === session.user.email?.toLowerCase()
+      event.organizerEmail.toLowerCase() ===
+        session.user.email?.toLowerCase()
   )
 
   if (!ownedByViewer) {
@@ -125,7 +136,7 @@ async function EditEventContent({ id }: { id: string }) {
           </p>
         </div>
 
-        {/* Form (edit mode preloaded from the API) */}
+        {/* Existing form in edit mode */}
         <div className="mt-10">
           <EventForm mode="edit" event={event} />
         </div>
@@ -135,23 +146,16 @@ async function EditEventContent({ id }: { id: string }) {
 }
 
 /**
- * Edit Event — dashboard route /dashboard/edit-event/[id].
+ * Edit Event — /dashboard/edit-event/[id].
  *
- * Loads the event's current data into the same form used for creation and
- * saves via PUT /events/:id. The backend authorizes the update against the
- * verified session's organizerEmail, so reaching this URL for someone
- * else's event can never succeed — this page additionally short-circuits
- * obvious mismatches for a friendlier error.
- *
- * The session + event reads are request-time (cacheComponents), so they
- * stream inside a Suspense boundary.
+ * The dynamic params are passed to the Suspense child without awaiting them
+ * in the page component. This allows the route to stream its fallback while
+ * the child resolves runtime data.
  */
-export default async function EditEventPage({ params }: EditEventPageProps) {
-  const { id } = await params
-
+export default function EditEventPage({ params }: EditEventPageProps) {
   return (
     <Suspense fallback={<EditEventFallback />}>
-      <EditEventContent id={id} />
+      <EditEventContent params={params} />
     </Suspense>
   )
 }
